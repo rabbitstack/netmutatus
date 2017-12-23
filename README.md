@@ -1,6 +1,6 @@
 # Netmutatus
 
-Netmutatus provides native bindings for `netlink` and `netfilter` Linux subsystems.
+*Netmutatus* (still in active development) provides native bindings for `netlink` and `netfilter` Linux subsystems.
 
 ## Requirements
 
