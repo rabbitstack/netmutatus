@@ -4,7 +4,7 @@
 
 - [x] link devices
 - [x] veth devices
-- [ ] addresses
+- [x] addresses
 - [ ] bridging
 - [ ] bonding
 - [ ] routing
