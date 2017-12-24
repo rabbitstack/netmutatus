@@ -32,5 +32,7 @@ module Netmutatus
 
     class NetlinkError < StandardError; end
 
+    class NetfilterError < StandardError; end
+
   end
 end
