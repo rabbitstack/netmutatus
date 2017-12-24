@@ -39,20 +39,24 @@ module Netmutatus
     # @param [String] veth_name veth interface name
     # @param [String] peer_name peer interface name
     def initialize(veth_name, peer_name)
-      do_in_netlink(Netlink::NETLINK_ROUTE) do |sock|
+      Netlink.do_in_netlink(Netlink::NETLINK_ROUTE) do |sock|
         @veth = rtnl_link_veth_alloc
+
         if @veth.null?
           raise Errors::VethError, 'Unable to allocate veth link'
         end
         @peer = rtnl_link_veth_get_peer(@veth)
+
         # initialize interface names
         rtnl_link_set_name(@veth, FFI::MemoryPointer.from_string(veth_name))
         rtnl_link_set_name(@peer, FFI::MemoryPointer.from_string(peer_name))
-        if rtnl_link_add(sock, @veth,
-                                 Netlink::NLM_F_CREATE |
-                                 Netlink::NLM_F_EXCL |
-                                 Netlink::NLM_F_ACK) < 0
-          raise Errors::VethError, "Unable to add veth pair #{veth_name} <-> #{peer_name}"
+
+        status = rtnl_link_add(sock, @veth,
+                               Netlink::NLM_F_CREATE |
+                               Netlink::NLM_F_EXCL |
+                               Netlink::NLM_F_ACK)
+        if status < 0
+          raise Errors::VethError, "Unable to add veth pair #{veth_name} <-> #{peer_name}: #{Netlink.error(status)}"
         end
         rtnl_link_put(@peer)
         rtnl_link_put(@veth)
