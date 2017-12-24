@@ -21,6 +21,8 @@
 # THE SOFTWARE.
 
 require 'ffi'
+require 'netmutatus/errors'
+require 'netmutatus/netlink'
 
 module Netmutatus
   module Netfilter
@@ -308,6 +310,94 @@ module Netmutatus
     attach_function :htons, [:uint16], :uint16
 
     attach_function :htonl, [:uint32], :uint32
+
+    attach_function :strerror, [:int], :pointer
+
+    # Assembles and sends a batch via Netfilter datagram socket.
+    #
+    # @param [FFI::MemoryPointer] pointer to allocated batch
+    # @param [FFI::MemoryPointer] buffer that stores the allocated batch
+    # @param [Numeric] the unique sequence id
+    def self.emit_netfilter_req(batch, buffer, seq)
+      sock = mnl_socket_open(Netlink::NETLINK_NETFILTER)
+
+      if sock.null?
+        raise Errors::NetfilterError, 'Unable to open Netfilter socket'
+      end
+
+      if mnl_socket_bind(sock, 0, 0) < 0
+          raise Errors::NetfilterError, 'Unable to bind Netfilter socket'
+      end
+
+      if mnl_socket_sendto(sock,
+                           mnl_nlmsg_batch_head(batch),
+                           mnl_nlmsg_batch_size(batch)) < 0
+          raise Errors::NetfilterError, 'Cannot send batch via Netfilter socket'
+      end
+
+      portid = mnl_socket_get_portid(sock)
+      mnl_nlmsg_batch_stop(batch)
+
+      # check for result
+      ret = mnl_socket_recvfrom(sock, buffer, buffer.size)
+      while ret > 0
+        ret = mnl_cb_run(buffer, ret, seq, portid, nil, nil)
+        if ret <= 0
+          break
+        end
+        ret = mnl_socket_recvfrom(sock, buffer, buffer.size)
+      end
+
+      if ret < 0
+        raise Errors::NetfilterError, "Unable to execute Netfilter command: #{Netfilter.strerror(FFI.errno).get_string(0)}"
+      end
+
+      mnl_socket_close(sock)
+    end
+
+    # Initializes a batch storing it inside the buffer. A single batch
+    # can hold multiple messages. This function also makes a room for
+    # a new message inside the batch.
+    #
+    # @param [Numeric] the unique sequence id of this batch
+    def self.begin_batch(seq)
+      pagesize = Netfilter.getpagesize
+      buffer = FFI::MemoryPointer.new(:char, pagesize < 8192 ? pagesize : 8192)
+
+      batch = Netfilter.mnl_nlmsg_batch_start(buffer, buffer.size)
+      if batch.null?
+        raise Errors::Netlink, "Unable to start batch"
+      end
+
+      Netfilter.nft_batch_begin(mnl_nlmsg_batch_current(batch), Netfilter.increment_seq(seq))
+      Netfilter.mnl_nlmsg_batch_next(batch)
+
+      return batch, buffer
+    end
+
+    # Ends the current batch identified with provided sequence.
+    #
+    # @param [FFI::MemoryPointer] pointer to allocated batch
+    # @param [Numeric] the unique sequence id of this batch
+    def self.end_batch(batch, seq)
+      Netfilter.nft_batch_end(mnl_nlmsg_batch_current(batch), Netfilter.increment_seq(seq))
+      Netfilter.mnl_nlmsg_batch_next(batch)
+    end
+
+    # Checks if batching support is present. It will raise an error
+    # if no support for batching is available.
+    def self.batch_supported?
+     raise Errors::NetfilterError, 'Unable to communicate with netfilter interface. Batching feature is not supported' \
+        unless Netfilter.nft_batch_is_supported
+    end
+
+    def self.init_seq
+      Time.now.to_i
+    end
+
+    def self.increment_seq(seq)
+      seq += 1
+    end
 
   end
 end
