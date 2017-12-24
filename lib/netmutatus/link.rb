@@ -158,14 +158,14 @@ module Netmutatus
     # Gets the identifier of the group to which the link belongs.
     # The operations can be applied to a group of links instead of
     # just a single link.
-    # @return [int] the numeric value of the link's group
+    # @return [Numeric] the numeric value of the link's group
     def group
       @group = rtnl_link_get_group(@link)
     end
 
     # Sets the identifier of the link's group. Any changes made to
     # a group propagates to all the links.
-    # @param [int] group the group identifier
+    # @param [Numeric] group the group identifier
     def group=(group)
       alloc = rtnl_link_alloc
       rtnl_link_set_group(alloc, group)
@@ -177,7 +177,7 @@ module Netmutatus
     # @return [str] the MAC address of the link
     def mac
       addr = rtnl_link_get_addr(@link)
-      buf = FFI::MemoryPointer.new(:string, Netlink::MAXMACADDR)
+      buf = FFI::MemoryPointer.new(:char, Netlink::MAXMACADDR)
       mac = nl_addr2str(addr, buf, Netlink::MAXMACADDR)
       mac.get_string(0) unless mac.null?
     end
