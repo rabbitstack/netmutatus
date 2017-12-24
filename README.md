@@ -2,6 +2,20 @@
 
 **Netmutatus** (still in active development) provides native bindings for `netlink` and `netfilter` Linux subsystems offering the user a neat abstraction layer for creating link devices, `veth` interfaces, manipulating routing tables or handling packet filtering or address translation through `netfilter` among other tasks.
 
+- [x] link devices
+- [x] veth devices
+- [ ] addresses
+- [ ] bridging
+- [ ] bonding
+- [ ] routing
+- [x] netfilter tables
+- [ ] netfilter chains
+- [ ] netfilter rules
+- [ ] MACVLAN
+- [ ] VLAN
+- [ ] VXLAN
+- [ ] neighbours
+
 ## Requirements
 
 Ensure `libnl-route`, `libnl`, `libnftnl` and `libmnl` shared objects are present on your system. Most distros already ship
