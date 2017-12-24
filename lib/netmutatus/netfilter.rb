@@ -54,8 +54,10 @@ module Netmutatus
     NFT_TABLE_ATTR_FLAGS = 2
 
     # protocols
+    NFPROTO_INET = 1
     NFPROTO_IPV4 = 2
     NFPROTO_ARP = 3
+    NFPROTO_BRIDGE = 7
     NFPROTO_IPV6 = 10
 
     # chain attributes
@@ -315,9 +317,9 @@ module Netmutatus
 
     # Assembles and sends a batch via Netfilter datagram socket.
     #
-    # @param [FFI::MemoryPointer] pointer to allocated batch
-    # @param [FFI::MemoryPointer] buffer that stores the allocated batch
-    # @param [Numeric] the unique sequence id
+    # @param [FFI::MemoryPointer] batch pointer to allocated batch
+    # @param [FFI::MemoryPointer] buffer stores the allocated batch
+    # @param [Numeric] seq the unique sequence id
     def self.emit_netfilter_req(batch, buffer, seq)
       sock = mnl_socket_open(Netlink::NETLINK_NETFILTER)
 
@@ -359,7 +361,7 @@ module Netmutatus
     # can hold multiple messages. This function also makes a room for
     # a new message inside the batch.
     #
-    # @param [Numeric] the unique sequence id of this batch
+    # @param [Numeric] seq the unique sequence id of this batch
     def self.begin_batch(seq)
       pagesize = Netfilter.getpagesize
       buffer = FFI::MemoryPointer.new(:char, pagesize < 8192 ? pagesize : 8192)
@@ -377,8 +379,8 @@ module Netmutatus
 
     # Ends the current batch identified with provided sequence.
     #
-    # @param [FFI::MemoryPointer] pointer to allocated batch
-    # @param [Numeric] the unique sequence id of this batch
+    # @param [FFI::MemoryPointer] batch pointer to allocated batch
+    # @param [Numeric] seq the unique sequence id of this batch
     def self.end_batch(batch, seq)
       Netfilter.nft_batch_end(mnl_nlmsg_batch_current(batch), Netfilter.increment_seq(seq))
       Netfilter.mnl_nlmsg_batch_next(batch)
