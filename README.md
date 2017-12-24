@@ -6,8 +6,9 @@
 - [x] veth devices
 - [x] addresses
 - [ ] bridging
-- [ ] bonding
 - [ ] routing
+- [ ] bonding
+- [ ] net namespaces
 - [x] netfilter tables
 - [ ] netfilter chains
 - [ ] netfilter rules
