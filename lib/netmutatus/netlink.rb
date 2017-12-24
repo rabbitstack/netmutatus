@@ -204,7 +204,7 @@ module Netmutatus
 
     # Returns an human readable error message from Netlink error code.
     #
-    # @param [Number] netlink error code
+    # @param [Number] error netlink error code
     def self.error(error)
       Netlink.nl_geterror(error).get_string(0)
     end
