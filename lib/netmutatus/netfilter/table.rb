@@ -40,10 +40,24 @@ module Netmutatus
         # families including ip, ipv6, arp, bridge
         # and inet.
         # @param [String] name netfilter table name
-        # @param [Numeric] family protocol family
-        def initialize(name, family=NFPROTO_IPV4)
+        # @param [Symbol] family table protocol family
+        def initialize(name, family=:ip)
           @name = name
-          @family = family
+          @family = Netfilter::NFPROTO_IPV4
+          case family
+            when :ip
+              @family = Netfilter::NFPROTO_IPV4
+            when :ipv6
+              @family = Netfilter::NFPROTO_IPV6
+            when :inet
+              @family = Netfilter::NFPROTO_INET
+            when :arp
+              @family = Netfilter::NFPROTO_ARP
+            when :bridge
+              @family = Netfilter::NFPROTO_BRIDGE
+            else
+              raise Errors::NetfilterErrror, "#{family} is unsupported family. Please choose :ip|:ipv6|:inet|:arp|:bridge"
+          end
 
           table = nft_table_alloc
 
@@ -63,10 +77,10 @@ module Netmutatus
 
         # Emits a Netfilter request with specific Netfilter table command.
         #
-        # @param [Numeric] the identifier of the Netfilter table command
-        # @param [FFI::MemoryPointer] pointer to allocated table structure
-        # @param [Numeric] the identifier of the table family
-        # @param [Numeric] bitwise pattern for table flags
+        # @param [Numeric] cmd the identifier of the Netfilter table command
+        # @param [FFI::MemoryPointer] table pointer to allocated table structure
+        # @param [Numeric] family the identifier of the table family
+        # @param [Numeric] flags bitwise pattern for table flags
         def emit_table_req(cmd, table, family, flags=nil)
             Netfilter.batch_supported?
 
