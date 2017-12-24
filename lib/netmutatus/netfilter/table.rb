@@ -66,11 +66,11 @@ module Netmutatus
           end
 
           # set basic table attributes
-          nft_table_attr_set_u32(table, Netfilter::NFT_TABLE_ATTR_FAMILY, family)
+          nft_table_attr_set_u32(table, Netfilter::NFT_TABLE_ATTR_FAMILY, @family)
           nft_table_attr_set_str(table, Netfilter::NFT_TABLE_ATTR_NAME, FFI::MemoryPointer.from_string(@name))
 
           # create table
-          emit_table_req(Netfilter::NFT_MSG_NEWTABLE, table, family)
+          emit_table_req(Netfilter::NFT_MSG_NEWTABLE, table, @family)
         end
 
         private
