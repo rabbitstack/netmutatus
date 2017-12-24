@@ -22,6 +22,7 @@
 
 require 'netmutatus/netlink'
 require 'netmutatus/errors'
+require 'netmutatus/addr'
 require 'ffi'
 
 module Netmutatus
@@ -52,6 +53,8 @@ module Netmutatus
       @group = :default
       @mtu = 1500
       @txqlen = 0
+
+      @addrs = {}
 
       @link = rtnl_link_get_by_name(@cache, FFI::MemoryPointer.from_string(@name))
 
@@ -186,12 +189,38 @@ module Netmutatus
 
     end
 
+    # Adds a new ip address to this link device.
+    #
+    # @param [String] ip the ip address in ipv4 or ipv6 format
+    def add_address(ip)
+      if @addrs.key?(ip)
+        return
+      end
+      @addrs[ip] =  Netmutatus::Addr.new(self, ip).add
+    end
+
+    # Removes an ip address from this link device.
+    #
+    # @param [String] ip the ip address in ipv4 or ipv6 format
+    def remove_address(ip)
+      if @addrs.key?(ip)
+        @addrs[ip].remove(ip)
+      else
+        Netmutatus::Addr.new(self, ip).remove
+      end
+      @addrs.delete(ip) if @addrs.key?(ip)
+    end
+
     def exists?
       !@link.nil? and !@link.null?
     end
 
     def up?
       @state == :up
+    end
+
+    def raw
+      @link
     end
 
     private
