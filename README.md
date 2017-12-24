@@ -1,6 +1,6 @@
 # Netmutatus
 
-**Netmutatus** (still in active development) provides native bindings for `netlink` and `netfilter` Linux subsystems offering the user a neat abstraction layer for creating link devices, `veth` interfaces, manipulating routing tables or handling packet filtering or address translation through `netfilter` among other tasks.
+**Netmutatus** (still in active development) provides native bindings for `netlink` and `netfilter` Linux subsystems offering the user a neat abstraction layer for creating link devices, `veth` interfaces, manipulating routing tables or handling packet filtering/address translation through `netfilter` interface among other tasks.
 
 - [x] link devices
 - [x] veth devices
