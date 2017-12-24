@@ -70,6 +70,7 @@ module Netmutatus
         rtnl_addr_put(@addr)
         rtnl_link_put(@link.raw)
       end
+      self
     end
 
     # Removes an ip address from the link device.
