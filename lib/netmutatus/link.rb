@@ -44,7 +44,7 @@ module Netmutatus
     #   By default, it attempts to create a new link if
     #   the provided one is not found in the cache.
     def initialize(name, force=true)
-      @cache = alloc_cache
+      @cache = Netlink.alloc_cache
       @name = name
       @state = :down
       @mac = nil
@@ -73,10 +73,17 @@ module Netmutatus
           if status < 0
             raise Errors::NetlinkError, "Unable to create #{@name} link: #{Netlink.error(status)}"
           end
+
+          # reallocate the cache and get the reference to the newly created link
+          @cache = Netlink.alloc_cache
+          @link = rtnl_link_get_by_name(@cache, FFI::MemoryPointer.from_string(@name))
+          if @link.null?
+            raise Errors::NetlinkError, "Failed to fetch #{@name} link from the cache"
+          end
         end
       end
 
-      raise Errors::Netlink, "#{@name} link not found" unless exists?
+      raise Errors::NetlinkError, "#{@name} link not found" unless exists?
     end
 
     # Deletes a link.
@@ -211,37 +218,28 @@ module Netmutatus
       @addrs.delete(ip) if @addrs.key?(ip)
     end
 
+    # Returns true if this link exists or false otherwise.
     def exists?
       !@link.nil? and !@link.null?
     end
 
+    # Returns true is link is up. Otherwise it returns false.
     def up?
       @state == :up
     end
 
+    # Returns the raw memory pointer to link's structure.
     def raw
       @link
     end
 
     private
 
-    # Allocates the link cache where the links can be hold.
-    # A netlink message is sent to the kernel requesting a full dump of all configured links.
-    # The returned messages are parsed and filled into the cache. If the operation succeeds
-    # the resulting cache will a link object for each link configured in the kernel.
+    # Builds a RTM_NEWLINK netlink message requesting the change of a network link.
+    # The link to be changed is looked up based on the interface index supplied in
+    # link changes.
     #
-    # @return [FFI::MemoryPointer] the pointer to the allocated cache
-    def alloc_cache
-      cache = FFI::MemoryPointer.new(:pointer)
-      Netlink.do_in_netlink(Netlink::NETLINK_ROUTE) do |sock|
-        if rtnl_link_alloc_cache(sock, 0, cache) < 0
-          raise Errors::NetlinkError, 'Unable to allocate Netlink cache'
-        end
-      end
-      cache.get_pointer(0)
-    end
-
-
+    # @param [FFI::MemoryPointer] change contains the link changes to be made
     def emit_change(change)
       Netlink.do_in_netlink(Netlink::NETLINK_ROUTE) do |sock|
         status = rtnl_link_change(sock,
