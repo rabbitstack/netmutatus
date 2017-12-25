@@ -4,10 +4,11 @@
 
 - [x] link devices
 - [x] veth devices
-- [ ] addresses
+- [x] addresses
 - [ ] bridging
-- [ ] bonding
 - [ ] routing
+- [ ] bonding
+- [ ] net namespaces
 - [x] netfilter tables
 - [ ] netfilter chains
 - [ ] netfilter rules
