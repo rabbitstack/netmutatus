@@ -136,6 +136,8 @@ module Netmutatus
     # @returns operational status
     attach_function :rtnl_link_get_operstate, [:pointer], :uint8
 
+    attach_function :rtnl_link_veth_add, [:pointer, :pointer, :pointer, :int], :int
+
     attach_function :rtnl_link_name2i, [:pointer, :pointer], :int
 
     attach_function :rtnl_link_i2name, [:pointer, :int, :string, :size_t], :pointer
@@ -200,6 +202,22 @@ module Netmutatus
       end
       yield sock
       Netlink.nl_close(sock)
+    end
+
+    # Allocates the link cache where the links can be hold.
+    # A netlink message is sent to the kernel requesting a full dump of all configured links.
+    # The returned messages are parsed and filled into the cache. If the operation succeeds
+    # the resulting cache will a link object for each link configured in the kernel.
+    #
+    # @return [FFI::MemoryPointer] the pointer to the allocated cache
+    def self.alloc_cache
+      cache = FFI::MemoryPointer.new(:pointer)
+      Netlink.do_in_netlink(Netlink::NETLINK_ROUTE) do |sock|
+        if Netlink.rtnl_link_alloc_cache(sock, 0, cache) < 0
+          raise Errors::NetlinkError, 'Unable to allocate Netlink cache'
+        end
+      end
+      cache.get_pointer(0)
     end
 
     # Returns an human readable error message from Netlink error code.
