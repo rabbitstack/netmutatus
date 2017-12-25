@@ -37,11 +37,14 @@ module Netmutatus
     #
     # @param [Object] link the link that receives this address either for addition or removal
     # @param [String] ip the ip address in ipv4 or ipv6 format with an optional subnet mask (i.e. 172.17.0.23/24)
-    def initialize(link, ip)
+    # @param [bool] veth_peer determines if veth device is peer
+    def initialize(link, ip, veth_peer=false)
       raise TypeError, "Invalid link object" unless link.kind_of?(Netmutatus::Link) \
         || link.kind_of?(Netmutatus::Veth)
       @link = link
       @ip = ip
+      @veth_peer = veth_peer
+
       @addr = rtnl_addr_alloc
       if @addr.null?
         raise Errors::NetlinkError, 'Unable to allocate address'
@@ -55,7 +58,13 @@ module Netmutatus
       rtnl_addr_set_local(@addr, addr.get_pointer(0))
 
       # set the link index for the ip addresss structure
-      rtnl_addr_set_ifindex(@addr, link.index)
+      if link.kind_of?(Netmutatus::Veth) && veth_peer
+        rtnl_addr_set_ifindex(@addr, link.peer_index)
+      elsif link.kind_of?(Netmutatus::Veth)
+        rtnl_addr_set_ifindex(@addr, link.veth_index)
+      else
+        rtnl_addr_set_ifindex(@addr, link.index)
+      end
     end
 
     # Attempts to assign ip address to the link.
@@ -65,10 +74,10 @@ module Netmutatus
                                @addr,
                                0)
         if status < 0
-          raise Errors::NetlinkError, "Unable to set ip address for #{@link.name} link: #{Netlink.error(status)}"
+          raise Errors::NetlinkError, "Unable to set ip address for #{link_name} link: #{Netlink.error(status)}"
         end
         rtnl_addr_put(@addr)
-        rtnl_link_put(@link.raw)
+        link_put
       end
       self
     end
@@ -80,11 +89,34 @@ module Netmutatus
                                   @addr,
                                   0)
         if status < 0
-          raise Errors::NetlinkError, "Unable to delete ip address for #{@link.name} link: #{Netlink.error(status)}"
+          raise Errors::NetlinkError, "Unable to delete ip address for #{link_name} link: #{Netlink.error(status)}"
         end
         rtnl_addr_put(@addr)
+        link_put
+      end
+    end
+
+    private
+
+    def link_put
+      if @link.kind_of?(Netmutatus::Veth) && @veth_peer
+        rtnl_link_put(@link.raw_peer)
+      elsif @link.kind_of?(Netmutatus::Veth)
+        rtnl_link_put(@link.raw_veth)
+      else
         rtnl_link_put(@link.raw)
       end
     end
+
+    def link_name
+      if @link.kind_of?(Netmutatus::Veth) && @veth_peer
+         @link.peer_name
+      elsif @link.kind_of?(Netmutatus::Veth)
+         @link.veth_name
+      else
+         @link.name
+      end
+    end
+
   end
 end
